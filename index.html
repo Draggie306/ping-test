@@ -7,6 +7,11 @@
     <script src = "pingtest.js"></script>
     <meta name="description" content="Infinitely ping a server using Cloudflare Workers and WebSockets.">
     <meta name="keywords" content="Cloudflare, Workers, WebSockets, Ping, Test">
+    
+    <script
+    src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
+    </script>
+
 </head>
 
 <body>
@@ -18,7 +23,14 @@
 
     <h2>Start the test</h2>
     <p>Click the button below to start the ping test.</p>
-    <button onclick="startPingTest()">Start Ping Test</button>
+    <button id="startButton" onclick="startPingTest()">Start Ping Test</button>
+    <br>
+    <input type="text" id="pingInterval" placeholder="Ping interval in milliseconds" value="20">
+    <input type="text" id="websocketUrl" placeholder="Websocket Server" value="ping-test.draggie.games" disabled>
+
+    <h2>Chart</h2>
+    <canvas id="pingChart" style="width:100%;max-width:700px"></canvas>
+
 </body>
 
 </html>

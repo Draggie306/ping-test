@@ -3,19 +3,87 @@
 // See server.js for the Worker code/
 
 // In client-side JavaScript, connect to your Workers function using WebSockets:
-const websocket = new WebSocket('wss://ping-test.draggie.workers.dev');
+//const websocket = new WebSocket('wss://ping-test.draggie.workers.dev');
+
+//wsUrl = document.getElementById("websocketUrl").value;
+const websocket = new WebSocket("wss://websocket.ping-test.draggie.games");
 
 const elemt_display_statistics = document.getElementById('pingResults');
 const last_result = document.getElementById("lastPingResult");
 
 // The number of unique WebSocket pings to send.
-const int_numberofpings = 1000;
+const int_numberofpings = 10000;
 
 // Start time.
 var start = new Date().getTime();
 
 var averageRTT = 0;
+var totalRTT = 0;
+var pingsSent = 0;
+var rttValuesRaw = [];
+var modeRTT = null;
+var rangeRTT = null;
+var stdDivRTT = null;
+var lowestRTT = null;
+var highestRTT = null;
 
+websocket.addEventListener("message", (event) => {
+    console.log(`Message from server: ${event.data}`);
+});
+
+websocket.addEventListener("open", async (event) => { 
+    console.log("WebSocket connection opened.");
+    //startPingTest();
+});
+
+websocket.addEventListener('message', async function (event) {
+    const messageParts = event.data.split("_");
+    if (messageParts[0] === "Pong") {
+        const pingIndex = parseInt(messageParts[1]);
+        let end = performance.now();
+
+        // Calculate round trip time.
+        let int_rtt = end - start;
+        console.log(`Round trip time: ${int_rtt} ms`);
+
+        // Async call the functions to display to the user.
+        await display_latest_ping_rtt(int_rtt, messageParts[2]);
+        await display_statistics(int_rtt, messageParts[2]);
+
+        // Proceed with the next ping after a delay.
+        if (pingIndex < int_numberofpings - 1) {
+            timeToWait = document.getElementById("pingInterval").value;
+            await new Promise(r => setTimeout(r, timeToWait));
+            sendPing(pingIndex + 1);
+        } else {
+            console.log("Ping test completed.");
+        }
+    } else {
+        console.warn(`Unexpected message: ${event.data}`);
+    }
+});
+
+
+function sendPing(i) {
+    start = performance.now();
+    websocket.send(`Ping_${i}`);
+    console.log(`Ping_${i} sent`);
+}
+
+async function startPingTest() {
+    console.log("Function startPingTest() called.");
+
+    var timeToWait = document.getElementById("pingInterval").value;
+    console.log(`Time to wait: ${timeToWait}`);
+
+
+    sendPing(0); // Start the first ping.
+    document.getElementById("startButton").disabled = true;
+    document.getElementById("startButton").innerHTML = "Test in progress...";
+    document.getElementById("pingInterval").disabled = true;
+}
+
+/*
 async function startPingTest() {
     console.log("Function startPingTest() called.");
     for (var i = 0; i < int_numberofpings; i++) {
@@ -25,35 +93,6 @@ async function startPingTest() {
         var success = false;
 
         console.log(`Websocket: ${websocket}`);
-
-        // Add event listener for the websocket.
-        websocket.addEventListener('message', async function (event) {
-            // Now, begin the test.
-            var end = performance.now();
-            
-            if (event.data === `Pong_${i}`) {
-                // Calculate round trip time.
-                var int_rtt = end - start;
-                console.log(`Round trip time: ${int_rtt} ms`);
-
-                // Async call the functions to display to the user.
-                await display_latest_ping_rtt(int_rtt);
-                await display_statistics(int_rtt);
-
-                // Set success flag to true.
-                success = true;
-
-                // Wait for 1 second.
-                if (success) {
-                    await new Promise(r => setTimeout(r, 1000));
-                } else {
-                    console.warn("No response from server.");
-                    last_result.innerHTML = "No websocket message received back :(";
-                }
-            } else {
-                console.warn(`Unexpected message: ${event.data}`);
-            }
-        });
 
         // Get start time.
         var start = performance.now();
@@ -69,68 +108,121 @@ async function startPingTest() {
         }
     }
 }
+*/
 
 
-async function display_latest_ping_rtt(latestPingResult) {
+// Call to update the chart every 5 seconds.
+
+const xValues = [];
+
+async function update_chart(newRTTValue) {
+    const myChart = new Chart("pingChart", {
+        type: "line",
+        data: {
+            labels: xValues,
+            datasets: [{
+                label: "RTT",
+                data: rttValuesRaw,
+                fill: false,
+                borderColor: "rgb(75, 192, 192)",
+                tension: 0.1
+            }]
+        },
+        options: {
+            scales: {
+                x: {
+                    type: 'linear',
+                    position: 'bottom'
+                }
+            },
+            animation: {
+                duration: 0
+            }
+        }
+    });
+
+    function addData(chart, label, data) {
+        chart.data.labels.push(label);
+        chart.data.datasets.forEach((dataset) => {
+            dataset.data.push(data);
+        });
+        chart.update();
+    }
+    /*
+    setInterval(() => {
+        const newXValue = xValues.length;
+        //const newRTTValue = newRTTValue;
+        addData(myChart, newXValue, newRTTValue);
+    }, 1000);
+    */
+   addData(myChart, xValues.length, newRTTValue);
+}
+addEventListener("DOMContentLoaded", update_chart);
+
+
+
+async function display_latest_ping_rtt(latestPingResult, procTime) {
     console.log("Function display_latest_ping_rtt() called.");
 
     // Display latest ping RTT.
-    last_result.innerHTML = `Latest ping RTT: ${latestPingResult} ms`;
+    document.getElementById("lastPingResult").innerHTML = `Latest ping RTT: ${latestPingResult} ms`;
+    //last_result.innerHTML = `Latest ping RTT: ${latestPingResult} ms`;
+    update_chart(latestPingResult);
 }
 
-async function display_statistics(latestPingResult) {
+async function display_statistics(latestPingResult, procTime) {
     console.log("Function display_statistics() called.");
+
+    // Overhead calculations
+    var int_server_proc_time = procTime;
 
     // Compute mean, median, mode, range and std div.
     // Mean
+    pingsSent++;
     totalRTT += latestPingResult;
-    var meanRTT = averageRTT / int_numberofpings;
+    var meanRTT = totalRTT / pingsSent;
     console.log(`Mean RTT: ${meanRTT} ms`);
 
 
-    // AI generated code below
-
     // Median
-    var medianRTT = 0;
-    var arrRTT = [];
-    arrRTT.push(latestPingResult);
-    arrRTT.sort();
-    if (arrRTT.length % 2 === 0) {
-        medianRTT = (arrRTT[arrRTT.length / 2 - 1] + arrRTT[arrRTT.length / 2]) / 2;
-    } else {
-        medianRTT = arrRTT[(arrRTT.length - 1) / 2];
-    }
-
+    rttValuesRaw.push(latestPingResult);
+    var medianRTT = median(rttValuesRaw);
     console.log(`Median RTT: ${medianRTT} ms`);
 
-    // Mode
-    var modeRTT = 0;
-    var modeMap = {};
-    var maxCount = 0;
-    for (var i = 0; i < arrRTT.length; i++) {
-        var num = arrRTT[i];
-        modeMap[num] = (modeMap[num] || 0) + 1;
-        if (modeMap[num] > maxCount) {
-            maxCount = modeMap[num];
-            modeRTT = num;
-        }
-    }
-
-    console.log(`Mode RTT: ${modeRTT} ms`);
-
-    // Range
-    var rangeRTT = Math.max(...arrRTT) - Math.min(...arrRTT);
-    console.log(`Range RTT: ${rangeRTT} ms`);
-
-    // Standard deviation
-    var stdDivRTT = 0;
-    var sum = 0;
-    for (var i = 0; i < arrRTT.length; i++) {
-        sum += Math.pow(arrRTT[i] - meanRTT, 2);
-    }
-    stdDivRTT = Math.sqrt(sum / arrRTT.length);
+    // Std div
+    console.log(`RTT values: ${rttValuesRaw}`);
+    var stdDivRTT = getStandardDeviation(rttValuesRaw);
     console.log(`Standard deviation RTT: ${stdDivRTT} ms`);
 
+
     // Display statistics.
-    elemt_display_statistics.innerHTML = `Mean RTT: ${meanRTT} ms<br>Median RTT: ${medianRTT} ms<br>Mode RTT: ${modeRTT} ms<br>Range RTT: ${rangeRTT} ms<br>Standard deviation RTT: ${stdDivRTT} ms`;
+    document.getElementById("pingResults").innerHTML = `Mean RTT: ${meanRTT} ms<br>Median RTT: ${medianRTT} ms<br>Mode RTT: ${modeRTT} ms<br>Range RTT: ${rangeRTT} ms<br>Standard deviation RTT: ${stdDivRTT} ms<br>Avg server processing time: ${int_server_proc_time} ms<br>Total measurements: ${pingsSent}`;
 }
+
+
+function median(values) {
+    // Credit where it is due: https://stackoverflow.com/a/45309555
+    if (values.length === 0) {
+      throw new Error('Input array is empty');
+    }
+  
+    // Sorting values, preventing original array
+    // from being mutated.
+    values = [...values].sort((a, b) => a - b);
+  
+    const half = Math.floor(values.length / 2);
+  
+    return (values.length % 2
+      ? values[half]
+      : (values[half - 1] + values[half]) / 2
+    );
+  
+}
+
+function getStandardDeviation (array) {
+    // https://stackoverflow.com/a/53577159
+    array = array.filter(value => typeof value === 'number');
+    const n = array.length
+    const mean = array.reduce((a, b) => a + b) / n
+    return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
+  }
