@@ -50,6 +50,15 @@ websocket.addEventListener('message', async function (event) {
         await display_latest_ping_rtt(int_rtt, messageParts[2]);
         await display_statistics(int_rtt, messageParts[2]);
 
+        // Append the RTT value to the array.
+        // Note this has been commented out as the chart update function just handles this.
+        /*
+        console.log(`[WSEvent] Pre-push array: ${rttValuesRaw}`);
+        rttValuesRaw.push(int_rtt);
+        console.log(`[WSEvent] RTT value pushed to array: ${int_rtt}`);
+        console.log(`[WSEvent] Post-push array: ${rttValuesRaw}`);
+        */
+
         // Proceed with the next ping after a delay.
         if (pingIndex < int_numberofpings - 1) {
             timeToWait = document.getElementById("pingInterval").value;
@@ -82,36 +91,6 @@ async function startPingTest() {
     document.getElementById("startButton").innerHTML = "Test in progress...";
     document.getElementById("pingInterval").disabled = true;
 }
-
-/*
-async function startPingTest() {
-    console.log("Function startPingTest() called.");
-    for (var i = 0; i < int_numberofpings; i++) {
-        console.log(`Ping test ${i} started.`);
-
-        // Set success flag to false, we only ever want to continue if there is a server.
-        var success = false;
-
-        console.log(`Websocket: ${websocket}`);
-
-        // Get start time.
-        var start = performance.now();
-
-        // Send ping.
-        websocket.send(`Ping_${i}`);
-        console.log(`Ping_${i} sent`);
-        
-
-        if (success) {
-            console.log(`Ping test ${i} completed.`);
-            continue;
-        }
-    }
-}
-*/
-
-
-// Call to update the chart every 5 seconds.
 
 const xValues = [];
 
@@ -185,7 +164,6 @@ async function display_statistics(latestPingResult, procTime) {
 
 
     // Median
-    rttValuesRaw.push(latestPingResult);
     var medianRTT = median(rttValuesRaw);
     console.log(`Median RTT: ${medianRTT} ms`);
 
@@ -221,8 +199,9 @@ function median(values) {
 
 function getStandardDeviation (array) {
     // https://stackoverflow.com/a/53577159
-    array = array.filter(value => typeof value === 'number');
-    const n = array.length
-    const mean = array.reduce((a, b) => a + b) / n
-    return Math.sqrt(array.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
+    var newArray = array.filter(value => typeof value === 'number');
+
+    const n = newArray.length
+    const mean = newArray.reduce((a, b) => a + b) / n
+    return Math.sqrt(newArray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
   }
