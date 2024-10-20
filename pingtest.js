@@ -20,6 +20,7 @@ var start = new Date().getTime();
 var averageRTT = 0;
 var totalRTT = 0;
 var pingsSent = 0;
+var chartValueLimit = 1000;
 var rttValuesRaw = [];
 var modeRTT = null;
 var rangeRTT = null;
@@ -125,7 +126,6 @@ async function update_chart(newRTTValue) {
         chart.data.datasets.forEach((dataset) => {
             dataset.data.push(data);
         });
-        chart.update();
     }
     /*
     setInterval(() => {
@@ -135,10 +135,32 @@ async function update_chart(newRTTValue) {
     }, 1000);
     */
    addData(myChart, xValues.length, newRTTValue);
+
+
+    /*
+        Function to trim the amount of data samples in the chart by removing the oldest data points.
+        This is defined by the user via an input.
+    */
+
+    function trimData(chart, trimAmount) {
+        for (let i = 0; i < trimAmount; i++) {
+            xValues.shift();
+            chart.data.labels.shift();
+        }
+    }
+    trimData(myChart, getChartValuesLimit());
+
+    myChart.update(); 
 }
 addEventListener("DOMContentLoaded", update_chart);
 
 
+async function getChartValuesLimit() {
+    chartValuesLimit = document.getElementById("chartValues").value;
+    console.log(`Chart values limit: ${chartValuesLimit}`);
+
+    return chartValuesLimit;
+}
 
 async function display_latest_ping_rtt(latestPingResult, procTime) {
     console.log("Function display_latest_ping_rtt() called.");
@@ -203,5 +225,5 @@ function getStandardDeviation (array) {
 
     const n = newArray.length
     const mean = newArray.reduce((a, b) => a + b) / n
-    return Math.sqrt(newArray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n)
-  }
+    return Math.sqrt(newArray.map(x => Math.pow(x - mean, 2)).reduce((a, b) => a + b) / n);
+}
