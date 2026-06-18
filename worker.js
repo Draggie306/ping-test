@@ -27,6 +27,7 @@ async function handleRequest(request) {
   console.log("WebSocket connection accepted.");
 
   server.send(`ack`);
+  server.send(`colodata_${request.cf.colo}`);
 
   server.addEventListener('message', event => {
     var start = performance.now();
@@ -41,8 +42,8 @@ async function handleRequest(request) {
 
       // Return the pong of the responded message
       server.send(`Pong_${intNum}_${performance.now() - start}`);
-      console.log(`Sent response: "Pong_${intNum}"`);
-      //return new Response("ok");
+      // console.log(`Sent response: "Pong_${intNum}"`);
+      // return new Response("ok");
     } else {
       console.log("Unknown message, sending unknown response");
       server.send("unknown?");

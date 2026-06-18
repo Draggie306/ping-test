@@ -8,8 +8,7 @@
     <meta name="description" content="Infinitely ping a server using Cloudflare Workers and WebSockets.">
     <meta name="keywords" content="Cloudflare, Workers, WebSockets, Ping, Test">
     
-    <script
-    src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
+    <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.9.4/Chart.js">
     </script>
 
 </head>
@@ -17,13 +16,27 @@
 <body>
     <h1>Infinite Ping Test via Cloudflare Workers and WebSockets</h1>
 
+    <p>
+        The ping test is conducted over HTTPS and the WebSockets protocol. This means that it is not a direct measure of raw UDP or ICMP echo request ping.
+
+        This means the full path is <strong>Browser → WebSocket → TCP → Cloudflare → response → TCP → WebSocket → browser</strong>, so should represent a "high" estimate of what your true ping should be.
+    </p>
+
+    <p id="test-information">
+        Ping test information:
+    </p>
+
+    <p id="status" style="color: orange;" >
+        Connecting...
+    </p>
+
     <h2>Results</h2>
     <p id="lastPingResult">Latest ping result: N/A</p>
     <p id="pingResults">Ping results: N/A</p>
 
     <h2>Start the test</h2>
     <p>Click the button below to start the ping test.</p>
-    <button id="startButton" onclick="startPingTest()">Start Ping Test</button>
+    <button id="startButton" onclick="startPingTest()" disabled>Start Ping Test</button>
     <br>
     <input type="text" id="pingInterval" placeholder="Ping interval in milliseconds" value="20">
     <input type="text" id="chartValues" placeholder="Limit chart values" value="1000">
