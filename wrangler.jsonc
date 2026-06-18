@@ -1,0 +1,8 @@
+{
+	"name": "ping-test",
+	"main": "worker.js",
+	"compatibility_date": "2026-06-18",
+	"observability": {
+		"enabled": true,
+	},
+}
