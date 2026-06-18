@@ -22,8 +22,10 @@ var totalRTT = 0;
 var pingsSent = 0;
 var chartValueLimit = 1000;
 var rttValuesRaw = [];
-var modeRTT = null;
-var rangeRTT = null;
+var lowestRtt = null;
+var highestRtt = null;
+var p95Rtt = null;
+var p99Rtt = null;
 var stdDivRTT = null;
 var lowestRTT = null;
 var highestRTT = null;
@@ -190,13 +192,13 @@ async function display_statistics(latestPingResult, procTime) {
     console.log(`Median RTT: ${medianRTT} ms`);
 
     // Std div
-    console.log(`RTT values: ${rttValuesRaw}`);
+    // console.log(`RTT values: ${rttValuesRaw}`);
     var stdDivRTT = getStandardDeviation(rttValuesRaw);
     console.log(`Standard deviation RTT: ${stdDivRTT} ms`);
 
 
     // Display statistics.
-    document.getElementById("pingResults").innerHTML = `Mean RTT: ${meanRTT} ms<br>Median RTT: ${medianRTT} ms<br>Mode RTT: ${modeRTT} ms<br>Range RTT: ${rangeRTT} ms<br>Standard deviation RTT: ${stdDivRTT} ms<br>Avg server processing time: ${int_server_proc_time} ms<br>Total measurements: ${pingsSent}`;
+    document.getElementById("pingResults").innerHTML = `Mean RTT: ${meanRTT} ms<br>Median RTT: ${medianRTT} ms<br>5th percentile: ${percentile(0.05, rttValuesRaw)}<br>95th percentile: ${percentile(0.95, rttValuesRaw)}<br>99th percentile: ${percentile(0.99, rttValuesRaw)}<br>Lowest RTT: ${lowest(rttValuesRaw)} ms<br>Highest RTT: ${highest(rttValuesRaw)} ms<br>Standard deviation RTT: ${stdDivRTT} ms<br>Avg server processing time: ${int_server_proc_time} ms<br>Total measurements: ${pingsSent}`;
 }
 
 
